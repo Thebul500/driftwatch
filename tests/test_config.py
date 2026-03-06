@@ -11,7 +11,7 @@ def test_settings_defaults():
     s = Settings()
     assert s.debug is False
     assert s.access_token_expire_minutes == 30
-    assert s.secret_key == "change-me-in-production"
+    assert s.secret_key  # required, loaded from env
     assert "driftwatch" in s.database_url
 
 

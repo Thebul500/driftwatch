@@ -3,10 +3,12 @@
 No mocks — all tests hit the actual FastAPI app with a real SQLite database.
 """
 
+import os
+
 USER_DATA = {
     "username": "testuser",
     "email": "test@example.com",
-    "password": "securepassword123",
+    "password": os.environ.get("DRIFTWATCH_TEST_PASSWORD", "Test_pass1"),
 }
 
 SNAPSHOT_DATA = {
