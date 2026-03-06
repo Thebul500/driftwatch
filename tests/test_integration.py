@@ -8,7 +8,7 @@ import os
 USER_DATA = {
     "username": "testuser",
     "email": "test@example.com",
-    "password": os.environ.get("DRIFTWATCH_TEST_PASSWORD", "Test_pass1"),
+    "password": os.environ["DRIFTWATCH_TEST_PASSWORD"],
 }
 
 SNAPSHOT_DATA = {

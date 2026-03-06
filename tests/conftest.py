@@ -4,6 +4,7 @@ import os
 
 # Set required env vars before importing driftwatch (Settings validates on import)
 os.environ.setdefault("DRIFTWATCH_SECRET_KEY", "test-secret-key-not-for-production")
+os.environ.setdefault("DRIFTWATCH_TEST_PASSWORD", "Test_pass1")
 
 import pytest
 from fastapi.testclient import TestClient
