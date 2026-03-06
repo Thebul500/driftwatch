@@ -96,7 +96,12 @@ async def list_snapshots(
     result = await db.execute(query)
     items = result.scalars().all()
 
-    return PaginatedSnapshots(items=items, total=total, limit=limit, offset=offset)
+    return PaginatedSnapshots(
+        items=[SnapshotResponse.model_validate(s) for s in items],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post("/diff", response_model=DiffResponse)
