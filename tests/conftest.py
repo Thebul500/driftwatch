@@ -5,13 +5,17 @@ import os
 # Set required env vars before importing driftwatch (Settings validates on import)
 os.environ.setdefault("DRIFTWATCH_SECRET_KEY", "test-secret-key-not-for-production")
 
-import pytest  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine  # noqa: E402
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine  # noqa: E402
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
-from driftwatch.app import create_app  # noqa: E402
-from driftwatch.database import Base, get_db  # noqa: E402
+from driftwatch.app import create_app
+from driftwatch.database import Base, get_db
 
 
 @pytest.fixture
