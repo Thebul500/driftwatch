@@ -32,7 +32,8 @@ def create_access_token(user_id: int) -> str:
     """Create a JWT access token for the given user ID."""
     expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
     payload = {"sub": str(user_id), "exp": expire}
-    return jwt.encode(payload, settings.secret_key, algorithm=ALGORITHM)
+    token: str = jwt.encode(payload, settings.secret_key, algorithm=ALGORITHM)
+    return token
 
 
 async def get_current_user(
