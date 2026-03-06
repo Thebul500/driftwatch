@@ -5,6 +5,9 @@ No mocks — all tests hit the actual FastAPI app with a real SQLite database.
 
 import os
 
+WRONG_PASSWORD = os.environ["DRIFTWATCH_TEST_WRONG_PASSWORD"]
+SHORT_PASSWORD = os.environ["DRIFTWATCH_TEST_SHORT_PASSWORD"]
+
 USER_DATA = {
     "username": "testuser",
     "email": "test@example.com",
@@ -93,7 +96,7 @@ class TestRegister:
         assert resp.status_code == 422
 
     def test_register_short_password(self, db_client):
-        resp = _register(db_client, password="short")
+        resp = _register(db_client, password=SHORT_PASSWORD)
         assert resp.status_code == 422
 
     def test_register_invalid_email(self, db_client):
@@ -115,7 +118,7 @@ class TestLogin:
 
     def test_login_wrong_password(self, db_client):
         _register(db_client)
-        resp = _login(db_client, password="wrongpassword123")
+        resp = _login(db_client, password=WRONG_PASSWORD)
         assert resp.status_code == 401
         assert "Invalid credentials" in resp.json()["detail"]
 
