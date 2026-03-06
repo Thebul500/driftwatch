@@ -30,6 +30,13 @@ dev = ["pytest", "pytest-cov", "pytest-asyncio", "httpx", "ruff", "mypy", "bandi
 [tool.ruff]
 line-length = 100
 
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "TCH", "RUF", "S", "ARG"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "ARG"]
+"alembic/**" = ["INP001"]
+
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true

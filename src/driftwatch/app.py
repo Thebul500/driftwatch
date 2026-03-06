@@ -10,7 +10,7 @@ from .routes.health import router as health_router
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     """Application lifespan: startup and shutdown."""
     yield
 
