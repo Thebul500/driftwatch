@@ -8,11 +8,12 @@ from driftwatch.config import Settings, settings
 
 def test_settings_defaults():
     """Settings has expected defaults."""
-    s = Settings()
-    assert s.debug is False
-    assert s.access_token_expire_minutes == 30
-    assert s.secret_key  # required, loaded from env
-    assert "driftwatch" in s.database_url
+    with patch.dict(os.environ, {"DRIFTWATCH_DATABASE_URL": "postgresql+asyncpg://localhost:5432/driftwatch"}):
+        s = Settings()
+        assert s.debug is False
+        assert s.access_token_expire_minutes == 30
+        assert s.secret_key  # required, loaded from env
+        assert "driftwatch" in s.database_url
 
 
 def test_settings_env_prefix():
