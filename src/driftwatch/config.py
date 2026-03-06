@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application settings loaded from environment."""
 
-    database_url: str = "postgresql+asyncpg://localhost:5432/driftwatch"
+    database_url: str = "sqlite+aiosqlite:///driftwatch.db"
     secret_key: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     access_token_expire_minutes: int = 30
     debug: bool = False

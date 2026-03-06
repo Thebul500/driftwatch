@@ -194,7 +194,11 @@ class TestSnapshotRead:
         headers = _auth_header(db_client)
         resp = db_client.get("/snapshots", headers=headers)
         assert resp.status_code == 200
-        assert resp.json() == []
+        data = resp.json()
+        assert data["items"] == []
+        assert data["total"] == 0
+        assert data["limit"] == 50
+        assert data["offset"] == 0
 
     def test_list_snapshots(self, db_client):
         headers = _auth_header(db_client)
@@ -206,7 +210,55 @@ class TestSnapshotRead:
         )
         resp = db_client.get("/snapshots", headers=headers)
         assert resp.status_code == 200
-        assert len(resp.json()) == 2
+        data = resp.json()
+        assert len(data["items"]) == 2
+        assert data["total"] == 2
+
+    def test_list_snapshots_pagination(self, db_client):
+        headers = _auth_header(db_client)
+        for i in range(5):
+            db_client.post(
+                "/snapshots",
+                json={**SNAPSHOT_DATA, "name": f"snap-{i}"},
+                headers=headers,
+            )
+        resp = db_client.get("/snapshots?limit=2&offset=0", headers=headers)
+        data = resp.json()
+        assert len(data["items"]) == 2
+        assert data["total"] == 5
+
+        resp = db_client.get("/snapshots?limit=2&offset=4", headers=headers)
+        data = resp.json()
+        assert len(data["items"]) == 1
+        assert data["total"] == 5
+
+    def test_list_snapshots_filter_source(self, db_client):
+        headers = _auth_header(db_client)
+        db_client.post("/snapshots", json=SNAPSHOT_DATA, headers=headers)
+        db_client.post(
+            "/snapshots",
+            json={**SNAPSHOT_DATA, "name": "crontab", "source": "cron"},
+            headers=headers,
+        )
+        resp = db_client.get("/snapshots?source=docker", headers=headers)
+        data = resp.json()
+        assert len(data["items"]) == 1
+        assert data["items"][0]["source"] == "docker"
+        assert data["total"] == 1
+
+    def test_list_snapshots_filter_baseline(self, db_client):
+        headers = _auth_header(db_client)
+        db_client.post("/snapshots", json=SNAPSHOT_DATA, headers=headers)
+        db_client.post(
+            "/snapshots",
+            json={**SNAPSHOT_DATA, "name": "baseline-snap", "baseline": True},
+            headers=headers,
+        )
+        resp = db_client.get("/snapshots?baseline=true", headers=headers)
+        data = resp.json()
+        assert len(data["items"]) == 1
+        assert data["items"][0]["baseline"] is True
+        assert data["total"] == 1
 
     def test_get_snapshot_by_id(self, db_client):
         headers = _auth_header(db_client)
@@ -295,7 +347,8 @@ class TestOwnershipIsolation:
         headers_b = {"Authorization": f"Bearer {resp.json()['access_token']}"}
         resp = db_client.get("/snapshots", headers=headers_b)
         assert resp.status_code == 200
-        assert resp.json() == []
+        assert resp.json()["items"] == []
+        assert resp.json()["total"] == 0
 
     def test_user_cannot_modify_other_users_snapshot(self, db_client):
         # User A creates a snapshot
@@ -330,3 +383,120 @@ class TestOwnershipIsolation:
 
         resp = db_client.delete(f"/snapshots/{snapshot_id}", headers=headers_b)
         assert resp.status_code == 404
+
+
+# ---------- Snapshot diff ----------
+
+
+class TestSnapshotDiff:
+    def test_diff_identical_snapshots(self, db_client):
+        headers = _auth_header(db_client)
+        r1 = db_client.post("/snapshots", json=SNAPSHOT_DATA, headers=headers)
+        r2 = db_client.post(
+            "/snapshots", json={**SNAPSHOT_DATA, "name": "snap2"}, headers=headers
+        )
+        resp = db_client.post(
+            "/snapshots/diff",
+            json={"base_snapshot_id": r1.json()["id"], "target_snapshot_id": r2.json()["id"]},
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["drift_detected"] is False
+        assert data["diff_lines"] == []
+        assert data["additions"] == 0
+        assert data["deletions"] == 0
+
+    def test_diff_changed_snapshots(self, db_client):
+        headers = _auth_header(db_client)
+        r1 = db_client.post("/snapshots", json=SNAPSHOT_DATA, headers=headers)
+        new_content = '{"services": {"web": {"image": "apache"}}}'
+        changed = {**SNAPSHOT_DATA, "name": "snap2", "content": new_content}
+        r2 = db_client.post("/snapshots", json=changed, headers=headers)
+        resp = db_client.post(
+            "/snapshots/diff",
+            json={"base_snapshot_id": r1.json()["id"], "target_snapshot_id": r2.json()["id"]},
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["drift_detected"] is True
+        assert data["additions"] > 0 or data["deletions"] > 0
+        assert len(data["diff_lines"]) > 0
+
+    def test_diff_snapshot_not_found(self, db_client):
+        headers = _auth_header(db_client)
+        r1 = db_client.post("/snapshots", json=SNAPSHOT_DATA, headers=headers)
+        resp = db_client.post(
+            "/snapshots/diff",
+            json={"base_snapshot_id": r1.json()["id"], "target_snapshot_id": 999},
+            headers=headers,
+        )
+        assert resp.status_code == 404
+
+    def test_diff_requires_auth(self, db_client):
+        resp = db_client.post(
+            "/snapshots/diff",
+            json={"base_snapshot_id": 1, "target_snapshot_id": 2},
+        )
+        assert resp.status_code == 401
+
+
+# ---------- Drift check ----------
+
+
+class TestDriftCheck:
+    def test_drift_check_no_drift(self, db_client):
+        headers = _auth_header(db_client)
+        # Create a baseline
+        baseline_data = {**SNAPSHOT_DATA, "baseline": True, "name": "baseline"}
+        db_client.post("/snapshots", json=baseline_data, headers=headers)
+        # Create a snapshot with same content
+        r2 = db_client.post("/snapshots", json=SNAPSHOT_DATA, headers=headers)
+        resp = db_client.get(f"/snapshots/{r2.json()['id']}/drift", headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["drift_detected"] is False
+        assert data["additions"] == 0
+        assert data["deletions"] == 0
+
+    def test_drift_check_with_drift(self, db_client):
+        headers = _auth_header(db_client)
+        # Create a baseline
+        baseline_data = {**SNAPSHOT_DATA, "baseline": True, "name": "baseline"}
+        db_client.post("/snapshots", json=baseline_data, headers=headers)
+        # Create a snapshot with different content
+        changed = {**SNAPSHOT_DATA, "content": "changed content"}
+        r2 = db_client.post("/snapshots", json=changed, headers=headers)
+        resp = db_client.get(f"/snapshots/{r2.json()['id']}/drift", headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["drift_detected"] is True
+        assert len(data["diff_lines"]) > 0
+
+    def test_drift_check_no_baseline(self, db_client):
+        headers = _auth_header(db_client)
+        r1 = db_client.post("/snapshots", json=SNAPSHOT_DATA, headers=headers)
+        resp = db_client.get(f"/snapshots/{r1.json()['id']}/drift", headers=headers)
+        assert resp.status_code == 404
+        assert "No baseline found" in resp.json()["detail"]
+
+    def test_drift_check_uses_same_source(self, db_client):
+        headers = _auth_header(db_client)
+        # Create a baseline for a different source
+        other_baseline = {
+            "name": "cron-baseline",
+            "source": "cron",
+            "content": "some cron data",
+            "baseline": True,
+        }
+        db_client.post("/snapshots", json=other_baseline, headers=headers)
+        # Create a docker snapshot — should not match the cron baseline
+        r2 = db_client.post("/snapshots", json=SNAPSHOT_DATA, headers=headers)
+        resp = db_client.get(f"/snapshots/{r2.json()['id']}/drift", headers=headers)
+        assert resp.status_code == 404
+        assert "No baseline found" in resp.json()["detail"]
+
+    def test_drift_check_requires_auth(self, db_client):
+        resp = db_client.get("/snapshots/1/drift")
+        assert resp.status_code == 401

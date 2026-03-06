@@ -76,3 +76,47 @@ class SnapshotResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class DiffRequest(BaseModel):
+    """Request to diff two snapshots."""
+
+    base_snapshot_id: int
+    target_snapshot_id: int
+
+
+class DiffResponse(BaseModel):
+    """Diff result between two snapshots."""
+
+    base_snapshot_id: int
+    target_snapshot_id: int
+    base_name: str
+    target_name: str
+    base_source: str
+    target_source: str
+    drift_detected: bool
+    diff_lines: list[str]
+    additions: int
+    deletions: int
+
+
+class DriftCheckResponse(BaseModel):
+    """Result of checking a snapshot against its baseline."""
+
+    snapshot_id: int
+    baseline_id: int
+    snapshot_name: str
+    source: str
+    drift_detected: bool
+    diff_lines: list[str]
+    additions: int
+    deletions: int
+
+
+class PaginatedSnapshots(BaseModel):
+    """Paginated snapshot list response."""
+
+    items: list[SnapshotResponse]
+    total: int
+    limit: int
+    offset: int
