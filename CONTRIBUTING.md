@@ -36,8 +36,11 @@ docker compose up -d postgres
 4. Set the required environment variables:
 
 ```bash
-export DRIFTWATCH_DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/driftwatch"
-export DRIFTWATCH_SECRET_KEY="dev-secret-key"
+cp .env.example .env
+# Edit .env with your database credentials and a secret key:
+#   DRIFTWATCH_DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/driftwatch
+#   DRIFTWATCH_SECRET_KEY=$(openssl rand -hex 32)
+source .env
 ```
 
 5. Run database migrations:
@@ -92,7 +95,7 @@ Tests require a running PostgreSQL instance. The simplest approach is to use the
 docker compose up -d postgres
 ```
 
-The CI pipeline uses a PostgreSQL 16 Alpine service container with the default credentials (`postgres`/`postgres`).
+The CI pipeline uses a PostgreSQL 16 Alpine service container with credentials configured via GitHub Secrets.
 
 ## Pull Request
 

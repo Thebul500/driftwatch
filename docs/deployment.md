@@ -13,8 +13,9 @@ The simplest way to run Driftwatch in production:
 git clone https://github.com/Thebul500/driftwatch.git
 cd driftwatch
 
-# Set a secure secret key
-export SECRET_KEY=$(openssl rand -hex 32)
+# Set required secrets
+export DRIFTWATCH_SECRET_KEY=$(openssl rand -hex 32)
+export POSTGRES_PASSWORD=$(openssl rand -hex 16)
 
 # Start the stack
 docker compose up -d
@@ -40,10 +41,13 @@ All settings use the `DRIFTWATCH_` prefix:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DRIFTWATCH_DATABASE_URL` | `postgresql+asyncpg://postgres:postgres@localhost:5432/driftwatch` | Async database connection string |
-| `DRIFTWATCH_SECRET_KEY` | `change-me-in-production` | JWT signing key. **Must be changed in production.** |
+| `DRIFTWATCH_DATABASE_URL` | `postgresql+asyncpg://localhost:5432/driftwatch` | Async database connection string |
+| `DRIFTWATCH_SECRET_KEY` | *(required)* | JWT signing key. Generate with `openssl rand -hex 32`. |
 | `DRIFTWATCH_ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | JWT token lifetime in minutes |
 | `DRIFTWATCH_DEBUG` | `false` | Enable debug mode |
+| `POSTGRES_PASSWORD` | *(required for docker-compose)* | PostgreSQL password |
+| `POSTGRES_USER` | `postgres` | PostgreSQL user |
+| `POSTGRES_DB` | `driftwatch` | PostgreSQL database name |
 
 ## Database Migrations
 
@@ -80,7 +84,7 @@ uvicorn driftwatch.app:app --host 0.0.0.0 --port 8000
 
 ### Secret Key
 
-Always set `DRIFTWATCH_SECRET_KEY` to a cryptographically random value. Never use the default in production.
+`DRIFTWATCH_SECRET_KEY` is required — the app will not start without it. Generate with `openssl rand -hex 32`.
 
 ### Database
 
