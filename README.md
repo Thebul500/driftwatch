@@ -1,6 +1,6 @@
 # driftwatch
 
-Configuration snapshot store with diff detection. REST API for storing text snapshots, computing diffs, and detecting drift against baselines. Includes JWT authentication, pagination, and filtering.
+Infrastructure drift detector. Snapshots Docker configs, crontabs, firewall rules, and package versions. Alerts via Signal when anything changes unexpectedly. Stores baselines in SQLite, diffs on schedule.
 
 [![CI](https://github.com/Thebul500/driftwatch/actions/workflows/ci.yml/badge.svg)](https://github.com/Thebul500/driftwatch/actions)
 
@@ -34,15 +34,6 @@ uvicorn driftwatch.app:app --host 0.0.0.0 --port 8000
 |--------|------|-------------|
 | GET | `/health` | Health check |
 | GET | `/ready` | Readiness probe |
-| POST | `/auth/register` | Register a new user |
-| POST | `/auth/login` | Authenticate and get JWT token |
-| POST | `/snapshots` | Create a snapshot |
-| GET | `/snapshots` | List snapshots (paginated, filterable by source/baseline) |
-| GET | `/snapshots/{id}` | Get a single snapshot |
-| PUT | `/snapshots/{id}` | Update a snapshot |
-| DELETE | `/snapshots/{id}` | Delete a snapshot |
-| POST | `/snapshots/diff` | Compute unified diff between two snapshots |
-| GET | `/snapshots/{id}/drift` | Check drift against the latest baseline for the same source |
 
 ## Configuration
 
