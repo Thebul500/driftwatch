@@ -11,3 +11,5 @@ build/
 htmlcov/
 .coverage
 .worktrees/
+driftwatch.db
+*.db
